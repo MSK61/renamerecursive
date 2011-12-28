@@ -133,10 +133,13 @@ def run(settings, entries):
 
     for cur_entry in entries:
 
+        # If the current entry is a directory, handle its contents(files
+        # and subdirectories) first.
         if path.isdir(cur_entry):
             run(settings, itertools.imap(
                 lambda entry: join(cur_entry, entry), os.listdir(cur_entry)))
 
+        # Now rename the current entry.
         dir_name, base_name = path.split(cur_entry)
         new_name = sub(old_pat, new_pat, base_name)
 
