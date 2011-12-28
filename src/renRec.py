@@ -48,6 +48,7 @@ from os import path
 from os.path import join
 import re
 from re import sub
+import shlex
 import subprocess
 import sys
 import optparse
@@ -124,62 +125,41 @@ def run(settings, entries):
     recursively to new names according to the given conversion criteria.
 
     """
-    for cur_entry in entries:
-        (_rename_tree if path.isdir(cur_entry) else _rename_obj)(
-            cur_entry, settings)
-
-
-def _rename_obj(obj_name, settings):
-    """Rename the given object.
-
-    `obj_name` is the object to rename.
-    `settings` are the options for processing the object.
-    The function renames the given object to a new name according to the
-    given conversion criteria.
-
-    """
     old_pat = getattr(settings, _OLD_REGEX_VAR)
     new_pat = getattr(settings, _NEW_PAT_VAR)
-    dir_name, base_name = path.split(obj_name)
-    new_name = sub(old_pat, new_pat, base_name)
     handle_lower = getattr(settings, _LOWER_CASE_VAR)
     handle_upper = getattr(settings, _UPPER_CASE_VAR)
-
-    if new_name == base_name and (handle_lower or handle_upper):
-
-        # Try detecting a unified case for the old name and substitue
-        # accordingly with the same case of the new name.
-        candid_name = sub(old_pat, new_pat, base_name, flags=re.IGNORECASE)
-
-        if handle_lower:  # lower case
-            if base_name.lower() == base_name:
-                new_name = candid_name.lower()
-
-        if new_name == base_name and handle_upper:  # upper case
-            if base_name.upper() == base_name:
-                new_name = candid_name.upper()
-
-    new_name = join(dir_name, new_name)
     ren_cmd = getattr(settings, _REN_CMD_VAR)
 
-    if ren_cmd:  # custom rename command specified
-        subprocess.call([ren_cmd, obj_name, new_name])
-    else:  # Use the built-in rename command.
-        os.rename(obj_name, new_name)
+    for cur_entry in entries:
 
+        if path.isdir(cur_entry):
+            run(settings, itertools.imap(
+                lambda entry: join(cur_entry, entry), os.listdir(cur_entry)))
 
-def _rename_tree(dir_name, settings):
-    """Rename the given directory recursively.
+        dir_name, base_name = path.split(cur_entry)
+        new_name = sub(old_pat, new_pat, base_name)
 
-    `dir_name` is the directory to rename.
-    `settings` are the options for processing the directory.
-    The function renames the given directory recursively to a new name
-    according to the given conversion criteria.
+        if new_name == base_name and (handle_lower or handle_upper):
 
-    """
-    run(settings, itertools.imap(
-        lambda entry: join(dir_name, entry), os.listdir(dir_name)))
-    _rename_obj(dir_name, settings)
+            # Try detecting a unified case for the old name and
+            # substitue accordingly with the same case of the new name.
+            candid_name = sub(old_pat, new_pat, base_name, flags=re.IGNORECASE)
+
+            if handle_lower:  # lower case
+                if base_name.lower() == base_name:
+                    new_name = candid_name.lower()
+
+            if new_name == base_name and handle_upper:  # upper case
+                if base_name.upper() == base_name:
+                    new_name = candid_name.upper()
+
+        new_name = join(dir_name, new_name)
+
+        if ren_cmd:  # custom rename command specified
+            subprocess.call(shlex.split(ren_cmd) + [cur_entry, new_name])
+        else:  # Use the built-in rename command.
+            os.rename(cur_entry, new_name)
 
 
 if __name__ == '__main__':
