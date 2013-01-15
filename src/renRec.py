@@ -37,11 +37,14 @@ Usage: renRec.py -o OLDREGEX -n NEWNAME [-l] [-u] [-c RENCMD] FILE...
 #
 # environment:  Komodo IDE, version 6.1.3, build 66534, python 2.6.6,
 #               Fedora release 16 (Verne)
+#               Komodo IDE, version 7.1.2, build 73175, python 2.7.3,
+#               Fedora release 17 (Beefy Miracle)
 #
 # notes:        This is a private program.
 #
 ############################################################
 
+import functools
 import itertools
 import os
 from os import path
@@ -137,7 +140,7 @@ def run(settings, entries):
         # and subdirectories) first.
         if path.isdir(cur_entry):
             run(settings, itertools.imap(
-                lambda entry: join(cur_entry, entry), os.listdir(cur_entry)))
+                functools.partial(join, cur_entry), os.listdir(cur_entry)))
 
         # Now rename the current entry.
         dir_name, base_name = path.split(cur_entry)
